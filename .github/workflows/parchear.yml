@@ -71,5 +71,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TAG="${{ github.event.inputs.release_tag }}"
-          gh release delete "$TAG" -y || true
-          gh release create "$TAG" app-parcheada.apk --title "APK Parcheada ($TAG)" --notes "Generado automáticamente para uso personal"
+          gh release delete "$TAG" -R ${{ github.repository }} -y || true
+          gh release create "$TAG" app-parcheada.apk -R ${{ github.repository }} --title "APK Parcheada ($TAG)" --notes "Generado automáticamente para uso personal"
