@@ -1,10 +1,12 @@
-name: Parchear APK con ReVanced
+name: Parchear APK por Enlace
 
 on:
-  push:
-    paths:
-      - 'input/*.apk'
   workflow_dispatch:
+    inputs:
+      apk_url:
+        description: 'Pega aquí el enlace de descarga directa del APK'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -14,14 +16,16 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Descargar archivos del repositorio
-        uses: actions/checkout@v4
-
       - name: Configurar Java 17
         uses: actions/setup-java@v4
         with:
           java-version: '17'
           distribution: 'zulu'
+
+      - name: Descargar el APK original desde tu enlace
+        run: |
+          curl -L -A "Mozilla/5.0" "${{ github.event.inputs.apk_url }}" -o original.apk
+          ls -lh original.apk
 
       - name: Descargar ReVanced CLI y Patches oficiales
         run: |
@@ -31,11 +35,9 @@ jobs:
           PATCHES_URL=$(curl -s https://github.com | grep "browser_download_url.*\.rvp" | cut -d '"' -f 4)
           curl -L "$PATCHES_URL" -o patches.rvp
 
-      - name: Parchear el APK encontrado en input/
+      - name: Parchear el APK con ReVanced
         run: |
-          APK_FILE=$(ls input/*.apk | head -n 1)
-          echo "Parcheando: $APK_FILE"
-          java -jar revanced-cli.jar patch -p patches.rvp -o app-parcheada.apk "$APK_FILE"
+          java -jar revanced-cli.jar patch -p patches.rvp -o app-parcheada.apk original.apk
 
       - name: Guardar el APK parcheado para descargar
         uses: actions/upload-artifact@v4
