@@ -13,11 +13,11 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - name: Configurar Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'zulu'
@@ -33,7 +33,7 @@ jobs:
         run: |
           gh release download -R revanced/revanced-cli -p "*-all.jar" -O revanced-cli.jar
           
-          PATCHES_URL=$(curl -sL "https://api.revanced.app/v5/patches" | jq -r '.download_url')
+          PATCHES_URL=$(curl -sL "https://revanced.app" | jq -r '.download_url')
           echo "Descargando parches desde: $PATCHES_URL"
           curl -fL "$PATCHES_URL" -o patches.rvp
           
@@ -41,10 +41,10 @@ jobs:
 
       - name: Parchear el APK con ReVanced
         run: |
-          java -jar revanced-cli.jar patch -p patches.rvp -o app-parcheada.apk original.apk
+          java -jar revanced-cli.jar patch -p patches.rvp -b -o app-parcheada.apk original.apk
 
       - name: Guardar el APK parcheado para descargar
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: APK-Parcheada
           path: app-parcheada.apk
