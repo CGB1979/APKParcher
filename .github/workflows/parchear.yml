@@ -32,8 +32,16 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release download -R revanced/revanced-cli -p "*-all.jar" -O revanced-cli.jar
-          PATCHES_URL=$(curl -sL "https://sourceforge.net" | grep -oE 'https://sourceforge\.net/projects/revanced\.mirror/files/[^"]+\.rvp/download' | head -n 1)
-          curl -fL "$PATCHES_URL" -o patches.rvp
+          
+          PATCHES_URL=$(curl -sL -A "Mozilla/5.0" "https://sourceforge.net" | grep -oE 'https://[^"< ]+\.rvp(/download)?' | head -n 1)
+          echo "Enlace encontrado: $PATCHES_URL"
+          
+          if [ -z "$PATCHES_URL" ]; then
+            echo "No se encontró el archivo .rvp en SourceForge"
+            exit 1
+          fi
+          
+          curl -fL -A "Mozilla/5.0" "$PATCHES_URL" -o patches.rvp
           ls -lh revanced-cli.jar patches.rvp
 
       - name: Parchear el APK con ReVanced
