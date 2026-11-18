@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       apk_url:
-        description: 'Pega aquí el enlace de descarga directa del APK'
+        description: 'Pega aquí tu enlace normal de Google Drive (o enlace directo)'
         required: true
         type: string
 
@@ -22,10 +22,19 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Descargar el APK original desde tu enlace
+      - name: Descargar y verificar el APK original
         run: |
-          curl -fL -A "Mozilla/5.0" "${{ github.event.inputs.apk_url }}" -o original.apk
+          pip install -q gdown
+          if [[ "${{ github.event.inputs.apk_url }}" == *"://google.com"* ]]; then
+            gdown --fuzzy "${{ github.event.inputs.apk_url }}" -O original.apk
+          else
+            curl -fL -A "Mozilla/5.0" "${{ github.event.inputs.apk_url }}" -o original.apk
+          fi
           ls -lh original.apk
+          if ! unzip -tq original.apk >/dev/null 2>&1; then
+            echo "ERROR: No se descargó un APK válido. Revisa que el enlace sea público."
+            exit 1
+          fi
 
       - name: Descargar ReVanced CLI y Patches desde la API oficial
         env:
