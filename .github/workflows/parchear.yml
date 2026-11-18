@@ -4,8 +4,13 @@ on:
   workflow_dispatch:
     inputs:
       apk_url:
-        description: 'Pega aquí tu enlace de Google Drive (archivo .apk o .apkm)'
+        description: 'Enlace de Google Drive (.apk o .apkm)'
         required: true
+        type: string
+      release_tag:
+        description: 'Etiqueta interna para descarga web'
+        required: false
+        default: 'latest-patched'
         type: string
 
 permissions:
@@ -61,8 +66,10 @@ jobs:
         run: |
           java -jar revanced-cli.jar patch -p patches.rvp -b -o app-parcheada.apk original.apk
 
-      - name: Guardar el APK parcheado para descargar
-        uses: actions/upload-artifact@v5
-        with:
-          name: APK-Parcheada
-          path: app-parcheada.apk
+      - name: Publicar APK parcheado para la interfaz web
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="${{ github.event.inputs.release_tag }}"
+          gh release delete "$TAG" -y || true
+          gh release create "$TAG" app-parcheada.apk --title "APK Parcheada ($TAG)" --notes "Generado automáticamente para uso personal"
