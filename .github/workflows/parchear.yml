@@ -33,7 +33,9 @@ jobs:
         run: |
           gh release download -R revanced/revanced-cli -p "*-all.jar" -O revanced-cli.jar
           
-          PATCHES_URL=$(curl -sL "https://revanced.app" | jq -r '.download_url')
+          HOST="api.revanced.app"
+          PATH_API="v5/patches"
+          PATCHES_URL=$(curl -sL "https://${HOST}/${PATH_API}" | jq -r '.download_url')
           echo "Descargando parches desde: $PATCHES_URL"
           curl -fL "$PATCHES_URL" -o patches.rvp
           
