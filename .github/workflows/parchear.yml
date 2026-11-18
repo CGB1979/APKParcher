@@ -35,12 +35,11 @@ jobs:
           gdown "${{ github.event.inputs.apk_url }}"
           ARCHIVO_DESCARGADO=$(ls -1 | head -n 1)
           NOMBRE_BASE="${ARCHIVO_DESCARGADO%.*}"
-          # Limpiar espacios o caracteres raros en el nombre
           NOMBRE_LIMPIO=$(echo "$NOMBRE_BASE" | tr ' ' '_' | tr -cd '[:alnum:]_.-')
           echo "NOMBRE_FINAL=${NOMBRE_LIMPIO}_parcheado.apk" >> $GITHUB_ENV
           mv "$ARCHIVO_DESCARGADO" ../descarga.bin
           cd ..
-          echo "Archivo original: $ARCHIVO_DESCARGADO -> Salida: $NOMBRE_LIMPIO_parcheado.apk"
+          echo "Archivo original: $ARCHIVO_DESCARGADO -> Salida: ${NOMBRE_LIMPIO}_parcheado.apk"
 
       - name: Filtrar idioma español y unir si es Bundle (.apkm/.apks)
         env:
@@ -61,7 +60,7 @@ jobs:
                 fi
               done
             else
-              echo "AVISO: Este bundle no incluye split_config.es.apk; se conservará el idioma base (inglés)."
+              echo "AVISO: Este bundle no incluye split_config.es.apk; se conservará el idioma base."
             fi
             
             gh release download -R REAndroid/APKEditor -p "*.jar" -O APKEditor.jar
