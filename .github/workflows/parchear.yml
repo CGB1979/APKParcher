@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       apk_url:
-        description: 'Pega aquí tu enlace normal de Google Drive (o enlace directo)'
+        description: 'Pega aquí tu enlace de Google Drive'
         required: true
         type: string
 
@@ -25,11 +25,7 @@ jobs:
       - name: Descargar y verificar el APK original
         run: |
           pip install -q gdown
-          if [[ "${{ github.event.inputs.apk_url }}" == *"://google.com"* ]]; then
-            gdown --fuzzy "${{ github.event.inputs.apk_url }}" -O original.apk
-          else
-            curl -fL -A "Mozilla/5.0" "${{ github.event.inputs.apk_url }}" -o original.apk
-          fi
+          gdown --fuzzy "${{ github.event.inputs.apk_url }}" -O original.apk
           ls -lh original.apk
           if ! unzip -tq original.apk >/dev/null 2>&1; then
             echo "ERROR: No se descargó un APK válido. Revisa que el enlace sea público."
