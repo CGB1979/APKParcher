@@ -1,185 +1,162 @@
-const ownerInput = document.getElementById("ownerInput");
-const repoInput = document.getElementById("repoInput");
-const tokenInput = document.getElementById("tokenInput");
-const configPanel = document.getElementById("configPanel");
-const toggleConfigBtn = document.getElementById("toggleConfigBtn");
-const saveConfigBtn = document.getElementById("saveConfigBtn");
-const configStatus = document.getElementById("configStatus");
+const STORAGE_KEY = 'apkparcher_config';
 
-const apkUrlInput = document.getElementById("apkUrlInput");
-const startBtn = document.getElementById("startBtn");
-const progressBar = document.getElementById("progressBar");
-const progressPercent = document.getElementById("progressPercent");
-const stepText = document.getElementById("stepText");
-const downloadBtn = document.getElementById("downloadBtn");
+const els = {
+  ghUser: document.getElementById('ghUser'),
+  ghRepo: document.getElementById('ghRepo'),
+  ghToken: document.getElementById('ghToken'),
+  saveConfigBtn: document.getElementById('saveConfigBtn'),
+  configStatus: document.getElementById('configStatus'),
+  apkUrl: document.getElementById('apkUrl'),
+  startBtn: document.getElementById('startBtn'),
+  progressSection: document.getElementById('progressSection'),
+  progressFill: document.getElementById('progressFill'),
+  progressPercent: document.getElementById('progressPercent'),
+  statusText: document.getElementById('statusText'),
+  downloadBtn: document.getElementById('downloadBtn')
+};
 
-const WORKFLOW_FILE = "parchear.yml";
-let pollTimer = null;
+let currentDownloadUrl = null;
+let pollingTimer = null;
 
 function loadConfig() {
-  const owner = localStorage.getItem("gh_owner") || "";
-  const repo = localStorage.getItem("gh_repo") || "APKParcher";
-  const token = localStorage.getItem("gh_token") || "";
-
-  ownerInput.value = owner;
-  repoInput.value = repo;
-  tokenInput.value = token;
-
-  if (owner && repo && token) {
-    configStatus.textContent = "Conectado: " + owner + "/" + repo;
-    configStatus.classList.add("ready");
-  } else {
-    configStatus.textContent = "Falta configurar";
-    configStatus.classList.remove("ready");
-    configPanel.classList.remove("hidden");
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) {
+    const cfg = JSON.parse(saved);
+    els.ghUser.value = cfg.user || '';
+    els.ghRepo.value = cfg.repo || 'APKParcher';
+    els.ghToken.value = cfg.token || '';
+    if (cfg.user && cfg.repo && cfg.token) {
+      els.configStatus.textContent = `Conectado: ${cfg.user}/${cfg.repo}`;
+      els.configStatus.classList.add('connected');
+    }
   }
 }
 
-toggleConfigBtn.addEventListener("click", () => {
-  configPanel.classList.toggle("hidden");
-});
-
-saveConfigBtn.addEventListener("click", () => {
-  const owner = ownerInput.value.trim();
-  const repo = repoInput.value.trim();
-  const token = tokenInput.value.trim();
-
-  if (!owner || !repo || !token) {
-    alert("Completa usuario, repositorio y token.");
+els.saveConfigBtn.addEventListener('click', () => {
+  const cfg = {
+    user: els.ghUser.value.trim(),
+    repo: els.ghRepo.value.trim() || 'APKParcher',
+    token: els.ghToken.value.trim()
+  };
+  if (!cfg.user || !cfg.token) {
+    alert('Completa tu usuario de GitHub y el Personal Access Token.');
     return;
   }
-
-  localStorage.setItem("gh_owner", owner);
-  localStorage.setItem("gh_repo", repo);
-  localStorage.setItem("gh_token", token);
-  loadConfig();
-  configPanel.classList.add("hidden");
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+  els.configStatus.textContent = `Conectado: ${cfg.user}/${cfg.repo}`;
+  els.configStatus.classList.add('connected');
 });
 
 function setProgress(percent, text) {
-  progressBar.style.width = percent + "%";
-  progressPercent.textContent = percent + "%";
-  stepText.textContent = text;
+  els.progressFill.style.width = `${percent}%`;
+  els.progressPercent.textContent = `${percent}%`;
+  els.statusText.textContent = text;
 }
 
-function resetDownloadButton() {
-  downloadBtn.classList.add("disabled");
-  downloadBtn.setAttribute("aria-disabled", "true");
-  downloadBtn.href = "#";
-}
-
-function enableDownloadButton(url, filename) {
-  downloadBtn.href = url;
-  downloadBtn.setAttribute("download", filename || "app-parcheada.apk");
-  downloadBtn.classList.remove("disabled");
-  downloadBtn.setAttribute("aria-disabled", "false");
-}
-
-async function ghFetch(url, token, options = {}) {
-  const headers = Object.assign(
-    {
-      Authorization: "Bearer " + token,
-      Accept: "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28"
-    },
-    options.headers || {}
-  );
-  return fetch(url, Object.assign({}, options, { headers }));
-}
-
-startBtn.addEventListener("click", async () => {
-  const owner = localStorage.getItem("gh_owner");
-  const repo = localStorage.getItem("gh_repo");
-  const token = localStorage.getItem("gh_token");
-  const apkUrl = apkUrlInput.value.trim();
-
-  if (!owner || !repo || !token) {
-    configPanel.classList.remove("hidden");
-    alert("Primero guarda tu usuario, repositorio y token de GitHub.");
+els.startBtn.addEventListener('click', async () => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (!saved) {
+    alert('Primero configura y guarda tu Usuario y Token de GitHub arriba.');
+    return;
+  }
+  const cfg = JSON.parse(saved);
+  const url = els.apkUrl.value.trim();
+  if (!url) {
+    alert('Pega el enlace de Google Drive del archivo .apk, .apkm o .apks.');
     return;
   }
 
-  if (!apkUrl) {
-    alert("Pega el enlace de Google Drive del APK o APKM.");
-    return;
-  }
+  const tag = `build-${Date.now()}`;
+  currentDownloadUrl = null;
 
-  if (pollTimer) clearInterval(pollTimer);
-  resetDownloadButton();
-  startBtn.disabled = true;
-  setProgress(8, "Enviando orden al servidor de GitHub Actions...");
-
-  const runTag = "build-" + Date.now();
-  const dispatchEndpoint =
-    "https://api.github.com/repos/" +
-    owner +
-    "/" +
-    repo +
-    "/actions/workflows/" +
-    WORKFLOW_FILE +
-    "/dispatches";
+  els.startBtn.disabled = true;
+  els.downloadBtn.disabled = true;
+  els.progressSection.classList.remove('hidden');
+  setProgress(10, 'Enviando orden a GitHub Actions...');
 
   try {
-    const res = await ghFetch(dispatchEndpoint, token, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ref: "main",
-        inputs: {
-          apk_url: apkUrl,
-          release_tag: runTag
-        }
-      })
-    });
+    const dispatchRes = await fetch(
+      `https://api.github.com/repos/${cfg.user}/${cfg.repo}/actions/workflows/parchear.yml/dispatches`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${cfg.token}`,
+          Accept: 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          ref: 'main',
+          inputs: {
+            apk_url: url,
+            release_tag: tag
+          }
+        })
+      }
+    );
 
-    if (!res.ok) {
-      const errData = await res.json().catch(() => ({}));
-      throw new Error(errData.message || "Error HTTP " + res.status);
+    if (!dispatchRes.ok) {
+      const errData = await dispatchRes.json().catch(() => ({}));
+      throw new Error(errData.message || `Error HTTP ${dispatchRes.status}`);
     }
 
-    setProgress(18, "En cola de ejecución... esperando inicio del servidor...");
-    monitorWorkflow(owner, repo, token, runTag);
+    setProgress(20, 'En cola en el servidor de GitHub...');
+    await new Promise(r => setTimeout(r, 5000));
+    monitorWorkflow(cfg, tag);
   } catch (err) {
-    setProgress(0, "Error al iniciar: " + err.message);
-    startBtn.disabled = false;
+    setProgress(0, `Error al iniciar: ${err.message}`);
+    els.startBtn.disabled = false;
   }
 });
 
-function monitorWorkflow(owner, repo, token, runTag) {
-  let elapsed = 0;
+async function monitorWorkflow(cfg, tag) {
+  let fakeProgress = 25;
 
-  pollTimer = setInterval(async () => {
-    elapsed += 5;
+  pollingTimer = setInterval(async () => {
     try {
-      const runsUrl =
-        "https://api.github.com/repos/" +
-        owner +
-        "/" +
-        repo +
-        "/actions/workflows/" +
-        WORKFLOW_FILE +
-        "/runs?per_page=1";
-
-      const res = await ghFetch(runsUrl, token);
-      const data = await res.json();
-      const latestRun = data.workflow_runs && data.workflow_runs[0];
-
-      if (!latestRun) return;
-
-      if (latestRun.status === "queued") {
-        setProgress(22, "En cola de GitHub Actions...");
-      } else if (latestRun.status === "in_progress") {
-        const simulated = Math.min(88, 30 + Math.floor(elapsed / 3));
-        setProgress(simulated, "Descargando, uniendo splits y parcheando con ReVanced...");
-      } else if (latestRun.status === "completed") {
-        clearInterval(pollTimer);
-        if (latestRun.conclusion === "success") {
-          setProgress(95, "Parcheo finalizado. Preparando descarga directa...");
-          await fetchReleaseAsset(owner, repo, token, runTag);
-        } else {
-          setProgress(0, "El proceso falló (" + latestRun.conclusion + "). Revisa la pestaña Actions en GitHub.");
-          startBtn.disabled = false;
+      const res = await fetch(
+        `https://api.github.com/repos/${cfg.user}/${cfg.repo}/actions/runs?per_page=1`,
+        {
+          headers: {
+            Authorization: `Bearer ${cfg.token}`,
+            Accept: 'application/vnd.github+json'
+          }
         }
+      );
+      const data = await res.json();
+      const run = data.workflow_runs && data.workflow_runs;
+      if (!run) return;
+
+      if (run.status === 'queued') {
+        setProgress(22, 'Esperando servidor disponible...');
+      } else if (run.status === 'in_progress') {
+        if (fakeProgress < 90) fakeProgress += 5;
+        setProgress(fakeProgress, 'Descargando, filtrando español y aplicando parches...');
+      } else if (run.status === 'completed') {
+        clearInterval(pollingTimer);
+        if (run.conclusion === 'success') {
+          const relRes = await fetch(
+            `https://api.github.com/repos/${cfg.user}/${cfg.repo}/releases/tags/${tag}`,
+            {
+              headers: {
+                Authorization: `Bearer ${cfg.token}`,
+                Accept: 'application/vnd.github+json'
+              }
+            }
+          );
+          const relData = await relRes.json();
+          const asset = relData.assets && relData.assets;
+          if (asset) {
+            currentDownloadUrl = asset.browser_download_url;
+            setProgress(100, `¡Listo! Generado: ${asset.name}`);
+            els.downloadBtn.textContent = `⬇️ Descargar ${asset.name}`;
+            els.downloadBtn.disabled = false;
+          } else {
+            setProgress(100, 'Parcheado listo. Descárgalo desde Releases en GitHub.');
+          }
+        } else {
+          setProgress(0, `El proceso falló (${run.conclusion}). Revisa Actions en GitHub.`);
+        }
+        els.startBtn.disabled = false;
       }
     } catch (e) {
       console.error(e);
@@ -187,49 +164,9 @@ function monitorWorkflow(owner, repo, token, runTag) {
   }, 5000);
 }
 
-async function fetchReleaseAsset(owner, repo, token, runTag) {
-  try {
-    const relUrl =
-      "https://api.github.com/repos/" +
-      owner +
-      "/" +
-      repo +
-      "/releases/tags/" +
-      runTag;
-
-    const res = await ghFetch(relUrl, token);
-    if (!res.ok) {
-      throw new Error("No se encontró el archivo publicado.");
-    }
-
-    const release = await res.json();
-    const asset = release.assets && release.assets[0];
-
-    if (!asset) {
-      throw new Error("El release no contiene ningún APK.");
-    }
-
-    const assetRes = await fetch(asset.url, {
-      headers: {
-        Authorization: "Bearer " + token,
-        Accept: "application/octet-stream"
-      }
-    });
-
-    if (!assetRes.ok) {
-      throw new Error("No se pudo descargar el APK desde el servidor.");
-    }
-
-    const blob = await assetRes.blob();
-    const objectUrl = URL.createObjectURL(blob);
-
-    setProgress(100, "¡Listo! Tu APK parcheado está preparado para descargar.");
-    enableDownloadButton(objectUrl, asset.name || "app-parcheada.apk");
-  } catch (err) {
-    setProgress(100, "Parcheado listo, pero descarga falló: " + err.message);
-  } finally {
-    startBtn.disabled = false;
-  }
-}
+els.downloadBtn.addEventListener('click', () => {
+  if (!currentDownloadUrl) return;
+  window.open(currentDownloadUrl, '_blank');
+});
 
 loadConfig();

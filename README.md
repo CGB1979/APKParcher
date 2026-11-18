@@ -1,12 +1,18 @@
-# APK Patcher — Interfaz Glaciar
+![APKParcher Glaciar Cover](assets/cover.png)
 
-Interfaz web personal conectada con **GitHub Actions** para unir archivos `.apkm`/`.xapk` y aplicar parches de **ReVanced** en la nube.
+# APKParcher Glaciar
 
-## Contenido del paquete
-- `index.html`, `style.css`, `app.js`: Interfaz web estilo Glaciar con barra de progreso en tiempo real y descarga directa.
-- `.github/workflows/parchear.yml`: Flujo de trabajo automatizado que descarga desde Google Drive, une bundles con APKEditor, parchea con ReVanced CLI y deja el `.apk` listo para bajar desde la web.
+Interfaz web estilo **Glaciar** conectada a **GitHub Actions** para automatizar el parcheo de aplicaciones Android de uso personal mediante **ReVanced CLI** y **APKEditor**.
 
-## Pasos de instalación
-1. Sube estos archivos a la raíz de tu repositorio en GitHub (manteniendo la ruta `.github/workflows/parchear.yml`).
-2. Activa **GitHub Pages** en `Settings -> Pages -> Branch: main / (root)` (si el repositorio es privado y tienes cuenta gratuita, puedes alojar `index.html`, `style.css` y `app.js` en un repositorio público separado y apuntar al repositorio privado `APKParcher` desde la configuración de la página).
-3. Crea un **Personal Access Token (Classic)** en GitHub con permisos `repo` y `workflow`, ingrésalo una sola vez en **Configurar Repositorio y Token** dentro de la página web y empieza a parchear.
+## Características incluidas
+
+* **Soporte multi-formato:** Acepta archivos `.apk`, `.apkm` y `.apks` mediante enlaces públicos de Google Drive.
+* **Filtro automático de idioma español:** Al procesar bundles (`.apkm` / `.apks`), conserva únicamente el paquete de idioma español (`split_config.es*.apk`) cuando está presente para reducir el tamaño final y priorizar el español al instalar.
+* **Nombre de salida dinámico:** Renombra automáticamente el archivo compilado como `<NombreOriginal>_parcheado.apk`.
+* **Identidad visual completa:** Incluye portada para el repositorio (`assets/cover.png`), icono principal (`assets/icon-512.png`) y favicon (`assets/favicon.png`).
+
+## Estructura del paquete
+
+* `.github/workflows/parchear.yml` — Flujo de trabajo en la nube (subir al repositorio privado `APKParcher`).
+* `index.html`, `style.css`, `app.js` — Interfaz web Glaciar (subir al repositorio público de GitHub Pages).
+* `assets/` — Portada, icono de aplicación y favicon.

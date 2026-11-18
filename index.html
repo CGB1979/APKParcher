@@ -3,74 +3,74 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>APK Patcher — Interfaz Glaciar</title>
+  <title>APKParcher Glaciar</title>
+  <link rel="icon" type="image/png" href="assets/favicon.png" />
+  <link rel="apple-touch-icon" href="assets/icon-512.png" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="bg-glow bg-glow-1"></div>
-  <div class="bg-glow bg-glow-2"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
 
-  <main class="container">
-    <header class="header">
-      <div class="badge">MOTOR EN LA NUBE · USO PERSONAL</div>
-      <h1>APK Patcher</h1>
-      <p class="subtitle">Pega el enlace de Google Drive de tu APK o APKM para unirlo y parchearlo automáticamente con ReVanced.</p>
+  <main class="glass-container">
+    <header class="app-header">
+      <img src="assets/icon-512.png" alt="Logo APKParcher" class="app-logo" />
+      <div>
+        <h1>APKParcher Glaciar</h1>
+        <p class="subtitle">Parcheo automático en la nube · Solo Español · Nombre Dinámico</p>
+      </div>
     </header>
 
-    <section class="card">
-      <div class="config-bar">
-        <button id="toggleConfigBtn" class="btn-ghost" type="button">⚙️ Configurar Repositorio y Token</button>
-        <span id="configStatus" class="status-pill">No configurado</span>
-      </div>
-
-      <div id="configPanel" class="config-panel hidden">
-        <div class="grid-2">
-          <div class="field">
-            <label for="ownerInput">Usuario de GitHub</label>
-            <input id="ownerInput" type="text" placeholder="tu-usuario" />
-          </div>
-          <div class="field">
-            <label for="repoInput">Nombre del Repositorio</label>
-            <input id="repoInput" type="text" placeholder="APKParcher" value="APKParcher" />
-          </div>
+    <details class="config-panel">
+      <summary>
+        <span>⚙️ Configuración de GitHub</span>
+        <span id="configStatus" class="status-badge">Sin configurar</span>
+      </summary>
+      <div class="config-grid">
+        <div class="field">
+          <label for="ghUser">Usuario de GitHub</label>
+          <input type="text" id="ghUser" placeholder="tu-usuario" />
         </div>
         <div class="field">
-          <label for="tokenInput">Personal Access Token (PAT)</label>
-          <input id="tokenInput" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
-          <small>Se guarda únicamente en tu navegador (localStorage). Requiere permisos <code>repo</code> y <code>workflow</code>.</small>
+          <label for="ghRepo">Repositorio</label>
+          <input type="text" id="ghRepo" value="APKParcher" />
         </div>
-        <button id="saveConfigBtn" class="btn-secondary" type="button">Guardar Configuración</button>
-      </div>
-
-      <div class="field main-input">
-        <label for="apkUrlInput">Enlace APK / APKM de Google Drive</label>
-        <input id="apkUrlInput" type="url" placeholder="https://drive.google.com/file/d/.../view?usp=drive_link" />
-      </div>
-
-      <div class="actions">
-        <button id="startBtn" class="btn-primary" type="button">Iniciar Parcheo</button>
-      </div>
-
-      <div class="progress-section">
-        <div class="progress-header">
-          <span id="progressLabel">Progreso en Tiempo Real</span>
-          <span id="progressPercent">0%</span>
+        <div class="field full">
+          <label for="ghToken">Personal Access Token (PAT)</label>
+          <input type="password" id="ghToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
         </div>
-        <div class="progress-track">
-          <div id="progressBar" class="progress-fill"></div>
-        </div>
-        <p id="stepText" class="step-text">Esperando enlace para iniciar...</p>
+        <button id="saveConfigBtn" class="btn secondary full" type="button">Guardar Configuración</button>
       </div>
+    </details>
 
-      <div class="download-section">
-        <a id="downloadBtn" class="btn-download disabled" href="#" download="app-parcheada.apk" aria-disabled="true">
-          Descargar APK Parcheado
-        </a>
+    <section class="patcher-box">
+      <label for="apkUrl">Enlace público de Google Drive (.apk, .apkm o .apks)</label>
+      <div class="input-row">
+        <input
+          type="url"
+          id="apkUrl"
+          placeholder="https://drive.google.com/file/d/..."
+          required
+        />
+        <button id="startBtn" class="btn primary" type="button">Iniciar Parcheo</button>
+      </div>
+      <p class="hint">Conserva automáticamente el idioma español (si el bundle lo incluye) y el nombre original del archivo.</p>
+    </section>
+
+    <section id="progressSection" class="progress-section hidden">
+      <div class="progress-header">
+        <span id="statusText">Preparando entorno...</span>
+        <span id="progressPercent">0%</span>
+      </div>
+      <div class="progress-track">
+        <div id="progressFill" class="progress-fill"></div>
       </div>
     </section>
 
-    <footer class="footer">
-      Interfaz Glaciar para APKs · Conectado vía GitHub API
+    <footer class="actions-footer">
+      <button id="downloadBtn" class="btn download" type="button" disabled>
+        ⬇️ Descargar APK Parcheado
+      </button>
     </footer>
   </main>
 
