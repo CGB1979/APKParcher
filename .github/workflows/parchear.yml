@@ -25,7 +25,7 @@ jobs:
       - name: Descargar y verificar el APK original
         run: |
           pip install -q gdown
-          gdown --fuzzy "${{ github.event.inputs.apk_url }}" -O original.apk
+          gdown "${{ github.event.inputs.apk_url }}" -O original.apk
           ls -lh original.apk
           if ! unzip -tq original.apk >/dev/null 2>&1; then
             echo "ERROR: No se descargó un APK válido. Revisa que el enlace sea público."
