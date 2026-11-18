@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       apk_url:
-        description: 'Enlace de Google Drive (.apk o .apkm)'
+        description: 'Enlace de Google Drive (.apk, .apkm o .apks)'
         required: true
         type: string
       release_tag:
@@ -27,23 +27,47 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Descargar archivo desde Google Drive
+      - name: Descargar archivo desde Google Drive y detectar nombre
         run: |
           pip install -q gdown
-          gdown "${{ github.event.inputs.apk_url }}" -O descarga.bin
-          ls -lh descarga.bin
+          mkdir -p descarga_dir
+          cd descarga_dir
+          gdown "${{ github.event.inputs.apk_url }}"
+          ARCHIVO_DESCARGADO=$(ls -1 | head -n 1)
+          NOMBRE_BASE="${ARCHIVO_DESCARGADO%.*}"
+          # Limpiar espacios o caracteres raros en el nombre
+          NOMBRE_LIMPIO=$(echo "$NOMBRE_BASE" | tr ' ' '_' | tr -cd '[:alnum:]_.-')
+          echo "NOMBRE_FINAL=${NOMBRE_LIMPIO}_parcheado.apk" >> $GITHUB_ENV
+          mv "$ARCHIVO_DESCARGADO" ../descarga.bin
+          cd ..
+          echo "Archivo original: $ARCHIVO_DESCARGADO -> Salida: $NOMBRE_LIMPIO_parcheado.apk"
 
-      - name: Unir si es .apkm / .xapk o preparar APK
+      - name: Filtrar idioma español y unir si es Bundle (.apkm/.apks)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if unzip -l descarga.bin | grep -q "base.apk"; then
-            echo "Detectado formato Bundle (.apkm/.xapk). Uniendo archivos con APKEditor..."
+            echo "Detectado Bundle (.apkm/.apks). Analizando idiomas..."
+            mkdir -p bundle_dir
+            unzip -q descarga.bin -d bundle_dir
+            
+            if ls bundle_dir/split_config.es*.apk >/dev/null 2>&1; then
+              echo "Idioma español encontrado. Conservando únicamente español (es)..."
+              find bundle_dir -name "split_config.*.apk" | while read f; do
+                fname=$(basename "$f")
+                if [[ "$fname" =~ ^split_config\.[a-z]{2}(_[A-Z]{2})?\.apk$ ]] && [[ ! "$fname" =~ ^split_config\.es ]]; then
+                  echo "Eliminando idioma: $fname"
+                  rm -f "$f"
+                fi
+              done
+            else
+              echo "AVISO: Este bundle no incluye split_config.es.apk; se conservará el idioma base (inglés)."
+            fi
+            
             gh release download -R REAndroid/APKEditor -p "*.jar" -O APKEditor.jar
-            mv descarga.bin bundle.apkm
-            java -jar APKEditor.jar m -i bundle.apkm -o original.apk
+            java -jar APKEditor.jar m -i bundle_dir -o original.apk
           else
-            echo "Detectado APK estándar."
+            echo "Detectado APK único estándar."
             mv descarga.bin original.apk
           fi
           ls -lh original.apk
@@ -64,7 +88,8 @@ jobs:
 
       - name: Parchear el APK con ReVanced
         run: |
-          java -jar revanced-cli.jar patch -p patches.rvp -b -o app-parcheada.apk original.apk
+          java -jar revanced-cli.jar patch -p patches.rvp -b -o "$NOMBRE_FINAL" original.apk
+          ls -lh "$NOMBRE_FINAL"
 
       - name: Publicar APK parcheado para la interfaz web
         env:
@@ -72,4 +97,4 @@ jobs:
         run: |
           TAG="${{ github.event.inputs.release_tag }}"
           gh release delete "$TAG" -R ${{ github.repository }} -y || true
-          gh release create "$TAG" app-parcheada.apk -R ${{ github.repository }} --title "APK Parcheada ($TAG)" --notes "Generado automáticamente para uso personal"
+          gh release create "$TAG" "$NOMBRE_FINAL" -R ${{ github.repository }} --title "$NOMBRE_FINAL" --notes "Generado automáticamente para uso personal"
