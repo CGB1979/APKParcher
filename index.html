@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>APK Patcher — Interfaz Glaciar</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="bg-glow bg-glow-1"></div>
+  <div class="bg-glow bg-glow-2"></div>
+
+  <main class="container">
+    <header class="header">
+      <div class="badge">MOTOR EN LA NUBE · USO PERSONAL</div>
+      <h1>APK Patcher</h1>
+      <p class="subtitle">Pega el enlace de Google Drive de tu APK o APKM para unirlo y parchearlo automáticamente con ReVanced.</p>
+    </header>
+
+    <section class="card">
+      <div class="config-bar">
+        <button id="toggleConfigBtn" class="btn-ghost" type="button">⚙️ Configurar Repositorio y Token</button>
+        <span id="configStatus" class="status-pill">No configurado</span>
+      </div>
+
+      <div id="configPanel" class="config-panel hidden">
+        <div class="grid-2">
+          <div class="field">
+            <label for="ownerInput">Usuario de GitHub</label>
+            <input id="ownerInput" type="text" placeholder="tu-usuario" />
+          </div>
+          <div class="field">
+            <label for="repoInput">Nombre del Repositorio</label>
+            <input id="repoInput" type="text" placeholder="APKParcher" value="APKParcher" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="tokenInput">Personal Access Token (PAT)</label>
+          <input id="tokenInput" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" />
+          <small>Se guarda únicamente en tu navegador (localStorage). Requiere permisos <code>repo</code> y <code>workflow</code>.</small>
+        </div>
+        <button id="saveConfigBtn" class="btn-secondary" type="button">Guardar Configuración</button>
+      </div>
+
+      <div class="field main-input">
+        <label for="apkUrlInput">Enlace APK / APKM de Google Drive</label>
+        <input id="apkUrlInput" type="url" placeholder="https://drive.google.com/file/d/.../view?usp=drive_link" />
+      </div>
+
+      <div class="actions">
+        <button id="startBtn" class="btn-primary" type="button">Iniciar Parcheo</button>
+      </div>
+
+      <div class="progress-section">
+        <div class="progress-header">
+          <span id="progressLabel">Progreso en Tiempo Real</span>
+          <span id="progressPercent">0%</span>
+        </div>
+        <div class="progress-track">
+          <div id="progressBar" class="progress-fill"></div>
+        </div>
+        <p id="stepText" class="step-text">Esperando enlace para iniciar...</p>
+      </div>
+
+      <div class="download-section">
+        <a id="downloadBtn" class="btn-download disabled" href="#" download="app-parcheada.apk" aria-disabled="true">
+          Descargar APK Parcheado
+        </a>
+      </div>
+    </section>
+
+    <footer class="footer">
+      Interfaz Glaciar para APKs · Conectado vía GitHub API
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
