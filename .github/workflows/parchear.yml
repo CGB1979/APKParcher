@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       apk_url:
-        description: 'Pega aquí tu enlace de Google Drive'
+        description: 'Pega aquí tu enlace de Google Drive (archivo .apk o .apkm)'
         required: true
         type: string
 
@@ -22,15 +22,26 @@ jobs:
           java-version: '17'
           distribution: 'zulu'
 
-      - name: Descargar y verificar el APK original
+      - name: Descargar archivo desde Google Drive
         run: |
           pip install -q gdown
-          gdown "${{ github.event.inputs.apk_url }}" -O original.apk
-          ls -lh original.apk
-          if ! unzip -tq original.apk >/dev/null 2>&1; then
-            echo "ERROR: No se descargó un APK válido. Revisa que el enlace sea público."
-            exit 1
+          gdown "${{ github.event.inputs.apk_url }}" -O descarga.bin
+          ls -lh descarga.bin
+
+      - name: Unir si es .apkm / .xapk o preparar APK
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if unzip -l descarga.bin | grep -q "base.apk"; then
+            echo "Detectado formato Bundle (.apkm/.xapk). Uniendo archivos con APKEditor..."
+            gh release download -R REAndroid/APKEditor -p "*.jar" -O APKEditor.jar
+            mv descarga.bin bundle.apkm
+            java -jar APKEditor.jar m -i bundle.apkm -o original.apk
+          else
+            echo "Detectado APK estándar."
+            mv descarga.bin original.apk
           fi
+          ls -lh original.apk
 
       - name: Descargar ReVanced CLI y Patches desde la API oficial
         env:
