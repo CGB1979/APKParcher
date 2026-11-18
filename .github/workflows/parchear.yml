@@ -24,16 +24,16 @@ jobs:
 
       - name: Descargar el APK original desde tu enlace
         run: |
-          curl -L -A "Mozilla/5.0" "${{ github.event.inputs.apk_url }}" -o original.apk
+          curl -fL -A "Mozilla/5.0" "${{ github.event.inputs.apk_url }}" -o original.apk
           ls -lh original.apk
 
       - name: Descargar ReVanced CLI y Patches oficiales
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          CLI_URL=$(curl -s https://github.com | grep "browser_download_url.*-all\.jar" | cut -d '"' -f 4)
-          curl -L "$CLI_URL" -o revanced-cli.jar
-          
-          PATCHES_URL=$(curl -s https://github.com | grep "browser_download_url.*\.rvp" | cut -d '"' -f 4)
-          curl -L "$PATCHES_URL" -o patches.rvp
+          gh release download -R revanced/revanced-cli -p "*-all.jar" -O revanced-cli.jar
+          gh release download -R revanced/revanced-patches -p "*.rvp" -O patches.rvp
+          ls -lh revanced-cli.jar patches.rvp
 
       - name: Parchear el APK con ReVanced
         run: |
